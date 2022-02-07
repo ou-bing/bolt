@@ -20,7 +20,7 @@ const maxMmapStep = 1 << 30 // 1GB
 // The data file format version.
 const version = 2
 
-// Represents a marker value to indicate that a file is a Bolt DB.
+// 表示一个标记值，以指示文件是 Bolt DB。
 const magic uint32 = 0xED0CDAED
 
 // IgnoreNoSync specifies whether the NoSync field of a DB is ignored when
@@ -39,9 +39,9 @@ const (
 // default page size for db is set to the OS page size.
 var defaultPageSize = os.Getpagesize()
 
-// DB represents a collection of buckets persisted to a file on disk.
-// All data access is performed through transactions which can be obtained through the DB.
-// All the functions on DB will return a ErrDatabaseNotOpen if accessed before Open() is called.
+// DB 表示一些存储桶的集合，持久化在磁盘上的单个文件中。
+// 所有的数据访问都是通过从DB获取的事务来执行的。
+// DB的所有方法如果在在调用 Open() 之前访问都会返回 ErrDatabaseNotOpen 错误。
 type DB struct {
 	// When enabled, the database will perform a Check() after every commit.
 	// A panic is issued if the database is in an inconsistent state. This
@@ -103,7 +103,7 @@ type DB struct {
 	filesz   int // current on disk file size
 	meta0    *meta
 	meta1    *meta
-	pageSize int
+	pageSize int // Bolt Page 的大小。
 	opened   bool
 	rwtx     *Tx
 	txs      []*Tx
@@ -115,10 +115,10 @@ type DB struct {
 	batchMu sync.Mutex
 	batch   *batch
 
-	rwlock   sync.Mutex   // Allows only one writer at a time.
-	metalock sync.Mutex   // Protects meta page access.
-	mmaplock sync.RWMutex // Protects mmap access during remapping.
-	statlock sync.RWMutex // Protects stats access.
+	rwlock   sync.Mutex   // 读写锁，同一时间只允许一个进程进行写操作。
+	metalock sync.Mutex   // 保护 Meta Page 的访问。
+	mmaplock sync.RWMutex // 在重新映射期间保护 mmap 的访问。
+	statlock sync.RWMutex // 保护统计数据的访问。
 
 	ops struct {
 		writeAt func(b []byte, off int64) (n int, err error)
@@ -144,20 +144,20 @@ func (db *DB) String() string {
 	return fmt.Sprintf("DB<%q>", db.path)
 }
 
-// Open creates and opens a database at the given path.
-// If the file does not exist then it will be created automatically.
-// Passing in nil options will cause Bolt to open the database with the default options.
+// Open 在给定路径上创建并打开数据库。
+// 如果文件不存在，则会自动创建。
+// 传入 nil 选项将导致 Bolt 使用默认选项打开数据库。
 func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	var db = &DB{opened: true}
 
-	// Set default options if no options are provided.
+	// 如果没有传入 Options 这里会使用 DefaultOptions。
 	if options == nil {
 		options = DefaultOptions
 	}
 	db.NoGrowSync = options.NoGrowSync
 	db.MmapFlags = options.MmapFlags
 
-	// Set default values for later DB operations.
+	// 为之后的数据库操作设置选项。
 	db.MaxBatchSize = DefaultMaxBatchSize
 	db.MaxBatchDelay = DefaultMaxBatchDelay
 	db.AllocSize = DefaultAllocSize
@@ -169,6 +169,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	}
 
 	// Open data file and separate sync handler for metadata writes.
+	// 打开数据文件。
 	db.path = path
 	var err error
 	if db.file, err = os.OpenFile(db.path, flag|os.O_CREATE, mode); err != nil {
@@ -176,9 +177,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 		return nil, err
 	}
 
-	// Lock file so that other processes using Bolt in read-write mode cannot
-	// use the database  at the same time. This would cause corruption since
-	// the two processes would write meta pages and free pages separately.
+	// 为文件加锁，防止同一时间其他进程上的 Bolt 在 read-write 模式下使用数据库，因为两个进程都能写 Meta Page 和 Free Page 会导致数据损坏。
 	// The database file is locked exclusively (only one process can grab the lock)
 	// if !options.ReadOnly.
 	// The database file is locked using the shared lock (more than one process may
@@ -191,15 +190,17 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	// Default values for test hooks
 	db.ops.writeAt = db.file.WriteAt
 
-	// Initialize the database if it doesn't exist.
+	// 获取数据文件的信息。
 	if info, err := db.file.Stat(); err != nil {
 		return nil, err
 	} else if info.Size() == 0 {
+		// 如果文件是空的就初始化一个新数据库。
 		// Initialize new files with meta pages.
 		if err := db.init(); err != nil {
 			return nil, err
 		}
 	} else {
+		// 读取数据文件。
 		// Read the first meta page to determine the page size.
 		var buf [0x1000]byte
 		if _, err := db.file.ReadAt(buf[:], 0); err == nil {
@@ -219,14 +220,14 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 		}
 	}
 
-	// Initialize page pool.
+	// 初始化 Page 池，这里使用了 sync.Pool，应当会复用 ？
 	db.pagePool = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, db.pageSize)
 		},
 	}
 
-	// Memory map the data file.
+	// 使用 mmap 把数据文件映射到内存中。
 	if err := db.mmap(options.InitialMmapSize); err != nil {
 		_ = db.close()
 		return nil, err
@@ -339,9 +340,9 @@ func (db *DB) mmapSize(size int) (int, error) {
 	return int(sz), nil
 }
 
-// init creates a new database file and initializes its meta pages.
+// init 创建一个新数据库文件并初始化它的 Meta Page 。
 func (db *DB) init() error {
-	// Set the page size to the OS page size.
+	// 将 Bolt 页的大小设为 OS 页的大小。
 	db.pageSize = os.Getpagesize()
 
 	// Create two meta pages on a buffer.
@@ -420,15 +421,15 @@ func (db *DB) close() error {
 
 	// Close file handles.
 	if db.file != nil {
-		// No need to unlock read-only file.
+		// 只读模式不会加锁，所以也不需要解锁文件。
 		if !db.readOnly {
-			// Unlock the file.
+			// 解锁文件。
 			if err := funlock(db); err != nil {
 				log.Printf("bolt.Close(): funlock error: %s", err)
 			}
 		}
 
-		// Close the file descriptor.
+		// 关闭文件描述符。
 		if err := db.file.Close(); err != nil {
 			return fmt.Errorf("db file close: %s", err)
 		}
@@ -797,6 +798,7 @@ func (db *DB) page(id pgid) *page {
 }
 
 // pageInBuffer retrieves a page reference from a given byte array based on the current page size.
+// 根据当前 Bolt 页的大小，从传入的字节切片中检索出该页的引用。
 func (db *DB) pageInBuffer(b []byte, id pgid) *page {
 	return (*page)(unsafe.Pointer(&b[id*pgid(db.pageSize)]))
 }
