@@ -35,8 +35,8 @@ const DefaultFillPercent = 0.5
 // Bucket represents a collection of key/value pairs inside the database.
 type Bucket struct {
 	*bucket
-	tx       *Tx                // the associated transaction
-	buckets  map[string]*Bucket // subbucket cache
+	tx       *Tx                // 关联的事务。
+	buckets  map[string]*Bucket // 子存储桶的缓存。
 	page     *page              // inline page reference
 	rootNode *node              // materialized node for the root page.
 	nodes    map[pgid]*node     // node cache
@@ -83,14 +83,13 @@ func (b *Bucket) Writable() bool {
 	return b.tx.writable
 }
 
-// Cursor creates a cursor associated with the bucket.
-// The cursor is only valid as long as the transaction is open.
-// Do not use a cursor after the transaction is closed.
+// Cursor 创建与存储桶关联的游标。
+// 该游标仅在事务打开时有效，不要在事务关闭后使用它。
 func (b *Bucket) Cursor() *Cursor {
-	// Update transaction statistics.
+	// 更新事务的统计学信息。
 	b.tx.stats.CursorCount++
 
-	// Allocate and return a cursor.
+	// 为游标分配 stack 空间并返回它。
 	return &Cursor{
 		bucket: b,
 		stack:  make([]elemRef, 0),
@@ -155,10 +154,10 @@ func (b *Bucket) openBucket(value []byte) *Bucket {
 	return &child
 }
 
-// CreateBucket creates a new bucket at the given key and returns the new bucket.
-// Returns an error if the key already exists, if the bucket name is blank, or if the bucket name is too long.
-// The bucket instance is only valid for the lifetime of the transaction.
+// CreateBucket 创建一个新的桶。桶的名字不能重复、不能为空，不能过长，否则会返回一个错误。如果桶已经存在就会返回一个错误。
+// Bucket 实例仅在事务的生命周期内可用。
 func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
+	// 各种校验。
 	if b.tx.db == nil {
 		return nil, ErrTxClosed
 	} else if !b.tx.writable {
@@ -167,11 +166,11 @@ func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 		return nil, ErrBucketNameRequired
 	}
 
-	// Move cursor to correct position.
+	// 将游标移到正确的位置。
 	c := b.Cursor()
 	k, _, flags := c.seek(key)
 
-	// Return an error if there is an existing key.
+	// 如果Key已经存在就返回一个错误。
 	if bytes.Equal(key, k) {
 		if (flags & bucketLeafFlag) != 0 {
 			return nil, ErrBucketExists
@@ -180,6 +179,7 @@ func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 	}
 
 	// Create empty, inline bucket.
+	// TODO 什么是 "inline bucket" ?
 	var bucket = Bucket{
 		bucket:      &bucket{},
 		rootNode:    &node{isLeaf: true},

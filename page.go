@@ -28,14 +28,14 @@ const (
 type pgid uint64
 
 type page struct {
-	id       pgid
-	flags    uint16
+	id       pgid   // 页的 ID，应当是递增的。
+	flags    uint16 // 页的类型，取值参考 typ()。
 	count    uint16
 	overflow uint32
 	ptr      uintptr
 }
 
-// typ returns a human readable page type string used for debugging.
+// typ 返回页的类型。
 func (p *page) typ() string {
 	if (p.flags & branchPageFlag) != 0 {
 		return "branch"
@@ -126,7 +126,7 @@ func (n *leafPageElement) value() []byte {
 	return (*[maxAllocSize]byte)(unsafe.Pointer(&buf[n.pos+n.ksize]))[:n.vsize:n.vsize]
 }
 
-// PageInfo represents human readable information about a page.
+// page 结构体和它的属性都是不能导出的，PageInfo 可以展示更易读的页信息。
 type PageInfo struct {
 	ID            int
 	Type          string

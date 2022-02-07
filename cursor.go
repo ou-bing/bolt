@@ -149,17 +149,18 @@ func (c *Cursor) Delete() error {
 	return nil
 }
 
-// seek moves the cursor to a given key and returns it.
-// If the key does not exist then the next key is used.
+// seek 将游标移动到给定的 Key，并返回该游标。
+// 如果 Key 不存在就使用下一个 Key。
+// TODO 什么是 "the next key" ？
 func (c *Cursor) seek(seek []byte) (key []byte, value []byte, flags uint32) {
 	_assert(c.bucket.tx.db != nil, "tx closed")
 
-	// Start from root page/node and traverse to correct page.
+	// 从根 page/node 遍历到正确的 page。
 	c.stack = c.stack[:0]
 	c.search(seek, c.bucket.root)
 	ref := &c.stack[len(c.stack)-1]
 
-	// If the cursor is pointing to the end of page/node then return nil.
+	// 如果游标指向 page/node 的末尾就返回 nil.
 	if ref.index >= ref.count() {
 		return nil, nil, 0
 	}
