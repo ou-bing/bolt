@@ -19,7 +19,7 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"github.com/boltdb/bolt"
+	"github.com/ou-bing/bolt"
 )
 
 var (
@@ -179,7 +179,7 @@ func (cmd *CheckCommand) Run(args ...string) error {
 	}
 
 	// Open database.
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func (cmd *InfoCommand) Run(args ...string) error {
 	}
 
 	// Open the database.
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		return err
 	}
@@ -687,7 +687,7 @@ func (cmd *PagesCommand) Run(args ...string) error {
 	}
 
 	// Open database.
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		return err
 	}
@@ -781,7 +781,7 @@ func (cmd *StatsCommand) Run(args ...string) error {
 	}
 
 	// Open database.
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		return err
 	}
@@ -913,7 +913,7 @@ func (cmd *BenchCommand) Run(args ...string) error {
 	}
 
 	// Create database.
-	db, err := bolt.Open(options.Path, 0666, nil)
+	db, err := bolt.Open(options.Path, 0o666, nil)
 	if err != nil {
 		return err
 	}
@@ -1020,7 +1020,7 @@ func (cmd *BenchCommand) runWrites(db *bolt.DB, options *BenchOptions, results *
 }
 
 func (cmd *BenchCommand) runWritesSequential(db *bolt.DB, options *BenchOptions, results *BenchResults) error {
-	var i = uint32(0)
+	i := uint32(0)
 	return cmd.runWritesWithSource(db, options, results, func() uint32 { i++; return i })
 }
 
@@ -1030,7 +1030,7 @@ func (cmd *BenchCommand) runWritesRandom(db *bolt.DB, options *BenchOptions, res
 }
 
 func (cmd *BenchCommand) runWritesSequentialNested(db *bolt.DB, options *BenchOptions, results *BenchResults) error {
-	var i = uint32(0)
+	i := uint32(0)
 	return cmd.runWritesWithSource(db, options, results, func() uint32 { i++; return i })
 }
 
@@ -1091,8 +1091,8 @@ func (cmd *BenchCommand) runWritesNestedWithSource(db *bolt.DB, options *BenchOp
 			b.FillPercent = options.FillPercent
 
 			for j := 0; j < options.BatchSize; j++ {
-				var key = make([]byte, options.KeySize)
-				var value = make([]byte, options.ValueSize)
+				key := make([]byte, options.KeySize)
+				value := make([]byte, options.ValueSize)
 
 				// Generate key as uint32.
 				binary.BigEndian.PutUint32(key, keySource())
@@ -1181,7 +1181,7 @@ func (cmd *BenchCommand) runReadsSequentialNested(db *bolt.DB, options *BenchOpt
 
 		for {
 			var count int
-			var top = tx.Bucket(benchBucketName)
+			top := tx.Bucket(benchBucketName)
 			if err := top.ForEach(func(name, _ []byte) error {
 				c := top.Bucket(name).Cursor()
 				for k, v := c.First(); k != nil; k, v = c.Next() {
@@ -1308,7 +1308,7 @@ func (r *BenchResults) WriteOpDuration() time.Duration {
 
 // Returns average number of write operations that can be performed per second.
 func (r *BenchResults) WriteOpsPerSecond() int {
-	var op = r.WriteOpDuration()
+	op := r.WriteOpDuration()
 	if op == 0 {
 		return 0
 	}
@@ -1325,7 +1325,7 @@ func (r *BenchResults) ReadOpDuration() time.Duration {
 
 // Returns average number of read operations that can be performed per second.
 func (r *BenchResults) ReadOpsPerSecond() int {
-	var op = r.ReadOpDuration()
+	op := r.ReadOpDuration()
 	if op == 0 {
 		return 0
 	}
@@ -1586,7 +1586,7 @@ func (cmd *CompactCommand) Run(args ...string) (err error) {
 	initialSize := fi.Size()
 
 	// Open source database.
-	src, err := bolt.Open(cmd.SrcPath, 0444, nil)
+	src, err := bolt.Open(cmd.SrcPath, 0o444, nil)
 	if err != nil {
 		return err
 	}

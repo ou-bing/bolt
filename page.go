@@ -11,8 +11,10 @@ const pageHeaderSize = int(unsafe.Offsetof(((*page)(nil)).ptr))
 
 const minKeysPerPage = 2
 
-const branchPageElementSize = int(unsafe.Sizeof(branchPageElement{}))
-const leafPageElementSize = int(unsafe.Sizeof(leafPageElement{}))
+const (
+	branchPageElementSize = int(unsafe.Sizeof(branchPageElement{}))
+	leafPageElementSize   = int(unsafe.Sizeof(leafPageElement{}))
+)
 
 const (
 	branchPageFlag   = 0x01
@@ -28,11 +30,11 @@ const (
 type pgid uint64
 
 type page struct {
-	id       pgid
-	flags    uint16
+	id       pgid   // 页标识。
+	flags    uint16 // 页类型。
 	count    uint16
 	overflow uint32
-	ptr      uintptr
+	ptr      uintptr // 页尾部的指针。
 }
 
 // typ returns a human readable page type string used for debugging.

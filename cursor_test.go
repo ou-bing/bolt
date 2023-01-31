@@ -11,7 +11,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/boltdb/bolt"
+	"github.com/ou-bing/bolt"
 )
 
 // Ensure that a cursor can return a reference to the bucket that created it.
@@ -170,7 +170,7 @@ func TestCursor_Seek_Large(t *testing.T) {
 	db := MustOpenDB()
 	defer db.MustClose()
 
-	var count = 10000
+	count := 10000
 
 	// Insert every other key between 0 and $count.
 	if err := db.Update(func(tx *bolt.Tx) error {
@@ -535,7 +535,7 @@ func TestCursor_QuickCheck(t *testing.T) {
 		sort.Sort(items)
 
 		// Iterate over all items and check consistency.
-		var index = 0
+		index := 0
 		tx, err = db.Begin(false)
 		if err != nil {
 			t.Fatal(err)
@@ -593,7 +593,7 @@ func TestCursor_QuickCheck_Reverse(t *testing.T) {
 		sort.Sort(revtestdata(items))
 
 		// Iterate over all items and check consistency.
-		var index = 0
+		index := 0
 		tx, err = db.Begin(false)
 		if err != nil {
 			t.Fatal(err)
@@ -708,7 +708,7 @@ func TestCursor_QuickCheck_BucketsOnly_Reverse(t *testing.T) {
 
 func ExampleCursor() {
 	// Open the database.
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -762,7 +762,7 @@ func ExampleCursor() {
 
 func ExampleCursor_reverse() {
 	// Open the database.
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

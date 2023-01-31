@@ -19,7 +19,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/boltdb/bolt"
+	"github.com/ou-bing/bolt"
 )
 
 var statsFlag = flag.Bool("stats", false, "show performance stats")
@@ -52,7 +52,7 @@ type meta struct {
 // Ensure that a database can be opened without error.
 func TestOpen(t *testing.T) {
 	path := tempfile()
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	} else if db == nil {
@@ -70,7 +70,7 @@ func TestOpen(t *testing.T) {
 
 // Ensure that opening a database with a blank path returns an error.
 func TestOpen_ErrPathRequired(t *testing.T) {
-	_, err := bolt.Open("", 0666, nil)
+	_, err := bolt.Open("", 0o666, nil)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -78,7 +78,7 @@ func TestOpen_ErrPathRequired(t *testing.T) {
 
 // Ensure that opening a database with a bad path returns an error.
 func TestOpen_ErrNotExists(t *testing.T) {
-	_, err := bolt.Open(filepath.Join(tempfile(), "bad-path"), 0666, nil)
+	_, err := bolt.Open(filepath.Join(tempfile(), "bad-path"), 0o666, nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -100,7 +100,7 @@ func TestOpen_ErrInvalid(t *testing.T) {
 	}
 	defer os.Remove(path)
 
-	if _, err := bolt.Open(path, 0666, nil); err != bolt.ErrInvalid {
+	if _, err := bolt.Open(path, 0o666, nil); err != bolt.ErrInvalid {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
@@ -132,12 +132,12 @@ func TestOpen_ErrVersionMismatch(t *testing.T) {
 	meta0.version++
 	meta1 := (*meta)(unsafe.Pointer(&buf[pageSize+pageHeaderSize]))
 	meta1.version++
-	if err := ioutil.WriteFile(path, buf, 0666); err != nil {
+	if err := ioutil.WriteFile(path, buf, 0o666); err != nil {
 		t.Fatal(err)
 	}
 
 	// Reopen data file.
-	if _, err := bolt.Open(path, 0666, nil); err != bolt.ErrVersionMismatch {
+	if _, err := bolt.Open(path, 0o666, nil); err != bolt.ErrVersionMismatch {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
@@ -169,12 +169,12 @@ func TestOpen_ErrChecksum(t *testing.T) {
 	meta0.pgid++
 	meta1 := (*meta)(unsafe.Pointer(&buf[pageSize+pageHeaderSize]))
 	meta1.pgid++
-	if err := ioutil.WriteFile(path, buf, 0666); err != nil {
+	if err := ioutil.WriteFile(path, buf, 0o666); err != nil {
 		t.Fatal(err)
 	}
 
 	// Reopen data file.
-	if _, err := bolt.Open(path, 0666, nil); err != bolt.ErrChecksum {
+	if _, err := bolt.Open(path, 0o666, nil); err != bolt.ErrChecksum {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
@@ -212,7 +212,7 @@ func TestOpen_Size(t *testing.T) {
 	}
 
 	// Reopen database, update, and check size again.
-	db0, err := bolt.Open(path, 0666, nil)
+	db0, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func TestOpen_Size_Large(t *testing.T) {
 	}
 
 	// Reopen database, update, and check size again.
-	db0, err := bolt.Open(path, 0666, nil)
+	db0, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,7 +311,7 @@ func TestOpen_Size_Large(t *testing.T) {
 func TestOpen_Check(t *testing.T) {
 	path := tempfile()
 
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestOpen_Check(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	db, err = bolt.Open(path, 0666, nil)
+	db, err = bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -343,7 +343,7 @@ func TestOpen_MetaInitWriteError(t *testing.T) {
 func TestOpen_FileTooSmall(t *testing.T) {
 	path := tempfile()
 
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ func TestOpen_FileTooSmall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	db, err = bolt.Open(path, 0666, nil)
+	db, err = bolt.Open(path, 0o666, nil)
 	if err == nil || err.Error() != "file size too small" {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -373,7 +373,7 @@ func TestDB_Open_InitialMmapSize(t *testing.T) {
 	initMmapSize := 1 << 31  // 2GB
 	testWriteSize := 1 << 27 // 134MB
 
-	db, err := bolt.Open(path, 0666, &bolt.Options{InitialMmapSize: initMmapSize})
+	db, err := bolt.Open(path, 0o666, &bolt.Options{InitialMmapSize: initMmapSize})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -916,7 +916,7 @@ func TestDB_Batch_Panic(t *testing.T) {
 	defer db.MustClose()
 
 	var sentinel int
-	var bork = &sentinel
+	bork := &sentinel
 	var problem interface{}
 	var err error
 
@@ -1050,7 +1050,7 @@ func TestDB_BatchTime(t *testing.T) {
 
 func ExampleDB_Update() {
 	// Open the database.
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1090,7 +1090,7 @@ func ExampleDB_Update() {
 
 func ExampleDB_View() {
 	// Open the database.
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1133,7 +1133,7 @@ func ExampleDB_View() {
 
 func ExampleDB_Begin_ReadOnly() {
 	// Open the database.
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1329,7 +1329,7 @@ func BenchmarkDBBatchManual10x100(b *testing.B) {
 }
 
 func validateBatchBench(b *testing.B, db *DB) {
-	var rollback = errors.New("sentinel error to cause rollback")
+	rollback := errors.New("sentinel error to cause rollback")
 	validate := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("bench"))
 		h := fnv.New32a()
@@ -1370,7 +1370,7 @@ type DB struct {
 
 // MustOpenDB returns a new, open DB at a temporary location.
 func MustOpenDB() *DB {
-	db, err := bolt.Open(tempfile(), 0666, nil)
+	db, err := bolt.Open(tempfile(), 0o666, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -1401,7 +1401,7 @@ func (db *DB) MustClose() {
 
 // PrintStats prints the database stats
 func (db *DB) PrintStats() {
-	var stats = db.Stats()
+	stats := db.Stats()
 	fmt.Printf("[db] %-20s %-20s %-20s\n",
 		fmt.Sprintf("pg(%d/%d)", stats.TxStats.PageCount, stats.TxStats.PageAlloc),
 		fmt.Sprintf("cur(%d)", stats.TxStats.CursorCount),
@@ -1428,8 +1428,8 @@ func (db *DB) MustCheck() {
 
 		// If errors occurred, copy the DB and print the errors.
 		if len(errors) > 0 {
-			var path = tempfile()
-			if err := tx.CopyFile(path, 0600); err != nil {
+			path := tempfile()
+			if err := tx.CopyFile(path, 0o600); err != nil {
 				panic(err)
 			}
 
@@ -1456,7 +1456,7 @@ func (db *DB) MustCheck() {
 func (db *DB) CopyTempFile() {
 	path := tempfile()
 	if err := db.View(func(tx *bolt.Tx) error {
-		return tx.CopyFile(path, 0600)
+		return tx.CopyFile(path, 0o600)
 	}); err != nil {
 		panic(err)
 	}
@@ -1490,7 +1490,7 @@ func mustContainKeys(b *bolt.Bucket, m map[string]string) {
 
 	// Check for keys found in bucket that shouldn't be there.
 	var keys []string
-	for k, _ := range found {
+	for k := range found {
 		if _, ok := m[string(k)]; !ok {
 			keys = append(keys, k)
 		}
@@ -1501,7 +1501,7 @@ func mustContainKeys(b *bolt.Bucket, m map[string]string) {
 	}
 
 	// Check for keys not found in bucket that should be there.
-	for k, _ := range m {
+	for k := range m {
 		if _, ok := found[string(k)]; !ok {
 			keys = append(keys, k)
 		}

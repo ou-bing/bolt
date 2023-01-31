@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/boltdb/bolt"
+	"github.com/ou-bing/bolt"
 )
 
 func TestSimulate_1op_1p(t *testing.T)     { testSimulate(t, 1, 1) }
@@ -36,10 +36,10 @@ func testSimulate(t *testing.T, threadCount, parallelism int) {
 	rand.Seed(int64(qseed))
 
 	// A list of operations that readers and writers can perform.
-	var readerHandlers = []simulateHandler{simulateGetHandler}
-	var writerHandlers = []simulateHandler{simulateGetHandler, simulatePutHandler}
+	readerHandlers := []simulateHandler{simulateGetHandler}
+	writerHandlers := []simulateHandler{simulateGetHandler, simulatePutHandler}
 
-	var versions = make(map[int]*QuickDB)
+	versions := make(map[int]*QuickDB)
 	versions[1] = NewQuickDB()
 
 	db := MustOpenDB()
@@ -49,7 +49,7 @@ func testSimulate(t *testing.T, threadCount, parallelism int) {
 
 	// Run n threads in parallel, each with their own operation.
 	var wg sync.WaitGroup
-	var threads = make(chan bool, parallelism)
+	threads := make(chan bool, parallelism)
 	var i int
 	for {
 		threads <- true
@@ -76,7 +76,7 @@ func testSimulate(t *testing.T, threadCount, parallelism int) {
 
 			// Obtain current state of the dataset.
 			mutex.Lock()
-			var qdb = versions[tx.ID()]
+			qdb := versions[tx.ID()]
 			if writable {
 				qdb = versions[tx.ID()-1].Copy()
 			}
@@ -301,7 +301,7 @@ func (db *QuickDB) copy(m map[string]interface{}) map[string]interface{} {
 }
 
 func randKey() []byte {
-	var min, max = 1, 1024
+	min, max := 1, 1024
 	n := rand.Intn(max-min) + min
 	b := make([]byte, n)
 	for i := 0; i < n; i++ {
@@ -312,7 +312,7 @@ func randKey() []byte {
 
 func randKeys() [][]byte {
 	var keys [][]byte
-	var count = rand.Intn(2) + 2
+	count := rand.Intn(2) + 2
 	for i := 0; i < count; i++ {
 		keys = append(keys, randKey())
 	}

@@ -144,11 +144,11 @@ func (db *DB) String() string {
 	return fmt.Sprintf("DB<%q>", db.path)
 }
 
-// Open creates and opens a database at the given path.
-// If the file does not exist then it will be created automatically.
-// Passing in nil options will cause Bolt to open the database with the default options.
+// Open 在给定的路径上打开或创建数据库。
+// 如果该文件不存在，那么它将被自动创建。
+// 传入 nil 选项将导致 Bolt 使用默认选项打开数据库。
 func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
-	var db = &DB{opened: true}
+	db := &DB{opened: true}
 
 	// Set default options if no options are provided.
 	if options == nil {
@@ -254,7 +254,7 @@ func (db *DB) mmap(minsz int) error {
 	}
 
 	// Ensure the size is at least the minimum size.
-	var size = int(info.Size())
+	size := int(info.Size())
 	if size < minsz {
 		size = minsz
 	}
@@ -339,19 +339,19 @@ func (db *DB) mmapSize(size int) (int, error) {
 	return int(sz), nil
 }
 
-// init creates a new database file and initializes its meta pages.
+// init 创建一个新的数据库文件并初始化它的元数据页。
 func (db *DB) init() error {
-	// Set the page size to the OS page size.
+	// 将页的大小设置为操作系统的页大小。
 	db.pageSize = os.Getpagesize()
 
-	// Create two meta pages on a buffer.
+	// 新建 4 页大小的在缓冲区，并写入两个元信息页。
 	buf := make([]byte, db.pageSize*4)
 	for i := 0; i < 2; i++ {
 		p := db.pageInBuffer(buf[:], pgid(i))
 		p.id = pgid(i)
 		p.flags = metaPageFlag
 
-		// Initialize the meta page.
+		// 初始化元信息页。
 		m := p.meta()
 		m.magic = magic
 		m.version = version
@@ -363,19 +363,19 @@ func (db *DB) init() error {
 		m.checksum = m.sum64()
 	}
 
-	// Write an empty freelist at page 3.
+	// 在第三页写入一个空的 freelist。
 	p := db.pageInBuffer(buf[:], pgid(2))
 	p.id = pgid(2)
 	p.flags = freelistPageFlag
 	p.count = 0
 
-	// Write an empty leaf page at page 4.
+	// 在第四页写入一个空的 leaf page。
 	p = db.pageInBuffer(buf[:], pgid(3))
 	p.id = pgid(3)
 	p.flags = leafPageFlag
 	p.count = 0
 
-	// Write the buffer to our data file.
+	// 将缓冲区的内容写入数据文件。
 	if _, err := db.ops.writeAt(buf, 0); err != nil {
 		return err
 	}
@@ -713,7 +713,7 @@ func (b *batch) run() {
 
 retry:
 	for len(b.calls) > 0 {
-		var failIdx = -1
+		failIdx := -1
 		err := b.db.Update(func(tx *Tx) error {
 			for i, c := range b.calls {
 				if err := safelyCall(c.fn, tx); err != nil {
@@ -794,7 +794,7 @@ func (db *DB) page(id pgid) *page {
 	return (*page)(unsafe.Pointer(&db.data[pos]))
 }
 
-// pageInBuffer retrieves a page reference from a given byte array based on the current page size.
+// pageInBuffer 从给定的数组中，根据页大小返回一个 page 引用。
 func (db *DB) pageInBuffer(b []byte, id pgid) *page {
 	return (*page)(unsafe.Pointer(&b[id*pgid(db.pageSize)]))
 }
@@ -842,7 +842,7 @@ func (db *DB) allocate(count int) (*page, error) {
 
 	// Resize mmap() if we're at the end.
 	p.id = db.rwtx.meta.pgid
-	var minsz = int((p.id+pgid(count))+1) * db.pageSize
+	minsz := int((p.id+pgid(count))+1) * db.pageSize
 	if minsz >= db.datasz {
 		if err := db.mmap(minsz); err != nil {
 			return nil, fmt.Errorf("mmap allocate error: %s", err)
@@ -1016,7 +1016,7 @@ func (m *meta) write(p *page) {
 
 // generates the checksum for the meta.
 func (m *meta) sum64() uint64 {
-	var h = fnv.New64a()
+	h := fnv.New64a()
 	_, _ = h.Write((*[unsafe.Offsetof(meta{}.checksum)]byte)(unsafe.Pointer(m))[:])
 	return h.Sum64()
 }
