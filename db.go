@@ -191,16 +191,16 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	// Default values for test hooks
 	db.ops.writeAt = db.file.WriteAt
 
-	// Initialize the database if it doesn't exist.
+	// 如果数据库不存在，就初始化一个新的。
 	if info, err := db.file.Stat(); err != nil {
 		return nil, err
 	} else if info.Size() == 0 {
-		// Initialize new files with meta pages.
+		// 使用元信息页初始化一个新文件。
 		if err := db.init(); err != nil {
 			return nil, err
 		}
 	} else {
-		// Read the first meta page to determine the page size.
+		// 读取第一个元信息页以确定页大小。
 		var buf [0x1000]byte
 		if _, err := db.file.ReadAt(buf[:], 0); err == nil {
 			m := db.pageInBuffer(buf[:], 0).meta()
@@ -219,14 +219,14 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 		}
 	}
 
-	// Initialize page pool.
+	// 初始化页池。
 	db.pagePool = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, db.pageSize)
 		},
 	}
 
-	// Memory map the data file.
+	// 在内存中映射数据文件。
 	if err := db.mmap(options.InitialMmapSize); err != nil {
 		_ = db.close()
 		return nil, err
